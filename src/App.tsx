@@ -12,6 +12,7 @@ import FacultyLogin from "./pages/FacultyLogin";
 import FacultyDashboard from "./pages/FacultyDashboard";
 import AdminLogin from "./pages/AdminLogin";
 import AdminPanel from "./pages/AdminPanel";
+import StudentRegister from "./pages/StudentRegister";
 
 const queryClient = new QueryClient();
 
@@ -25,6 +26,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/student/login" element={<StudentLogin />} />
+            <Route path="/student/register" element={<StudentRegister />} />
             <Route path="/student/checkin" element={<StudentCheckIn />} />
             <Route path="/faculty/login" element={<FacultyLogin />} />
             <Route path="/faculty/dashboard" element={<FacultyDashboard />} />

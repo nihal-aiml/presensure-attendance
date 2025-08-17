@@ -30,6 +30,7 @@ const Index = () => {
           <p className="mt-4 text-muted-foreground text-lg">Face recognition with liveness and voice authentication. Remote self check-in for students, robust review tools for faculty.</p>
           <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link to="/student/login"><Button variant="hero" className="h-12 px-6 hover-scale">Login as Student</Button></Link>
+            <Link to="/student/register"><Button variant="secondary" className="h-12 px-6 hover-scale">Register as Student</Button></Link>
             <Link to="/faculty/login"><Button variant="outline" className="h-12 px-6 hover-scale">Login as Faculty/Admin</Button></Link>
           </div>
         </div>
