@@ -131,4 +131,8 @@
   .hover-scale:hover { transform: translateY(-1px) scale(1.02); }
 
   .pulse { animation: pulse 2s cubic-bezier(0.4,0,0.6,1) infinite; }
+  
+  .animate-enter {
+    animation: fade-in 0.3s ease-out, scale-in 0.2s ease-out;
+  }
 }
