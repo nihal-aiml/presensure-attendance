@@ -49,20 +49,35 @@ const StudentLogin = () => {
 
   const checkUserRole = async (userId: string) => {
     try {
-      const { data: roleData } = await supabase
+      // Use maybeSingle() to avoid errors when no data is found
+      const { data: roleData, error: roleError } = await supabase
         .from('user_roles')
         .select('role')
         .eq('user_id', userId)
         .eq('role', 'student')
-        .single();
+        .maybeSingle();
+
+      if (roleError) {
+        console.error('Error checking user role:', roleError);
+        toast({
+          title: "Error",
+          description: "Unable to verify student status. Please contact support.",
+          variant: "destructive"
+        });
+        return;
+      }
 
       if (roleData) {
         // Get user profile data
-        const { data: profileData } = await supabase
+        const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('full_name, student_number')
           .eq('id', userId)
-          .single();
+          .maybeSingle();
+
+        if (profileError) {
+          console.error('Error fetching profile:', profileError);
+        }
 
         toast({ 
           title: "Welcome back!", 
@@ -77,15 +92,35 @@ const StudentLogin = () => {
           } 
         });
       } else {
-        toast({
-          title: "Access Denied",
-          description: "This account is not registered as a student",
-          variant: "destructive"
-        });
+        // No student role found - check if user_roles entry exists at all
+        const { data: anyRole } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', userId)
+          .maybeSingle();
+
+        if (!anyRole) {
+          toast({
+            title: "Registration Incomplete",
+            description: "Your account setup is incomplete. Please contact support or try registering again.",
+            variant: "destructive"
+          });
+        } else {
+          toast({
+            title: "Access Denied",
+            description: "This account is not registered as a student",
+            variant: "destructive"
+          });
+        }
         await supabase.auth.signOut();
       }
     } catch (error) {
       console.error('Error checking user role:', error);
+      toast({
+        title: "Error",
+        description: "Unable to verify account status",
+        variant: "destructive"
+      });
     }
   };
 
