@@ -101,9 +101,15 @@ const StudentRegister = () => {
       }
     } catch (error: any) {
       console.error('Registration error:', error);
+      let errorMessage = error.message || "An error occurred during registration";
+      
+      if (error.message?.includes("Email address") && error.message?.includes("invalid")) {
+        errorMessage = "Please enter a valid email address (e.g., student@example.com)";
+      }
+      
       toast({
         title: "Registration Failed",
-        description: error.message || "An error occurred during registration",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {

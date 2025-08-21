@@ -141,9 +141,15 @@ const StudentLogin = () => {
       // The auth state change listener will handle the redirect
     } catch (error: any) {
       console.error('Login error:', error);
+      let errorMessage = error.message || "Invalid credentials";
+      
+      if (error.message === "Invalid login credentials") {
+        errorMessage = "Account not found or incorrect password. Please check your email and password, or register if you haven't yet.";
+      }
+      
       toast({ 
         title: "Login failed", 
-        description: error.message || "Invalid credentials",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
