@@ -86,7 +86,7 @@ const StudentLogin = () => {
         
         navigate("/student/checkin", { 
           state: { 
-            userId,
+            id: userId,  // Changed from userId to id to match StudentCheckIn expectations
             name: profileData?.full_name,
             studentNumber: profileData?.student_number
           } 

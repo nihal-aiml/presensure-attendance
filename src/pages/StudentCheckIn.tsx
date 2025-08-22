@@ -79,11 +79,18 @@ const StudentCheckIn = () => {
 
     if (student) {
       try {
-        // Record attendance in Supabase
+        // Get current user session to ensure we're authenticated
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (!session?.user) {
+          throw new Error('User not authenticated');
+        }
+
+        // Record attendance in Supabase - use session.user.id to ensure RLS compliance
         const { data, error } = await supabase
           .from('attendance')
           .insert({
-            student_id: student.id,
+            student_id: session.user.id,  // Use authenticated user's ID
             class_id: '00000000-0000-4000-8000-000000000001', // Demo class ID
             face_match: Math.floor(Math.random() * 20) + 80, // Mock values for now
             voice_match: Math.floor(Math.random() * 20) + 80,
@@ -92,7 +99,10 @@ const StudentCheckIn = () => {
           .select()
           .single();
 
-        if (error) throw error;
+        if (error) {
+          console.error('Supabase error:', error);
+          throw error;
+        }
 
         const now = new Date();
         const time = now.toLocaleTimeString();
@@ -100,11 +110,11 @@ const StudentCheckIn = () => {
         
         setResult({ time, date });
         toast({ title: 'Attendance Recorded', description: `${date} ${time}` });
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error recording attendance:', error);
         toast({ 
           title: 'Error', 
-          description: 'Failed to record attendance. Please try again.',
+          description: error.message || 'Failed to record attendance. Please try again.',
           variant: 'destructive'
         });
       }
