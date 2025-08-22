@@ -79,21 +79,22 @@ const StudentRegister = () => {
       }
 
       if (authData.user) {
-        // Add student role
-        const { error: roleError } = await supabase
-          .from('user_roles')
+        // Create profile with user data
+        const { error: profileError } = await supabase
+          .from('profiles')
           .insert({
-            user_id: authData.user.id,
-            role: 'student'
+            id: authData.user.id,
+            full_name: formData.fullName,
+            student_number: formData.studentNumber
           });
 
-        if (roleError) {
-          console.error('Error adding user role:', roleError);
+        if (profileError) {
+          console.error('Error creating profile:', profileError);
         }
 
         toast({
           title: "Registration Successful!",
-          description: "Please check your email to verify your account before logging in."
+          description: "Your account has been created. You can now log in."
         });
 
         // Redirect to login page
