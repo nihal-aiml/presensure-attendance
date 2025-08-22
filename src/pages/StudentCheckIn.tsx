@@ -84,7 +84,7 @@ const StudentCheckIn = () => {
           .from('attendance')
           .insert({
             student_id: student.id,
-            class_id: 'demo-class-id', // This should come from context/props
+            class_id: '00000000-0000-4000-8000-000000000001', // Demo class ID
             face_match: Math.floor(Math.random() * 20) + 80, // Mock values for now
             voice_match: Math.floor(Math.random() * 20) + 80,
             status: 'pending'
