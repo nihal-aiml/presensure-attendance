@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "@/hooks/use-toast";
 import { getPassphrase, recordCheckIn } from "@/services/api";
+import { supabase } from "@/integrations/supabase/client";
 import { Camera, Mic, CheckCircle2, AlertCircle } from "lucide-react";
 
 const Step = ({ active, done, label }: { active: boolean; done: boolean; label: string }) => (
@@ -77,9 +78,36 @@ const StudentCheckIn = () => {
     setStep(3);
 
     if (student) {
-      const rec = await recordCheckIn(student.id, student.name);
-      setResult({ time: rec.time, date: rec.date });
-      toast({ title: 'Attendance Recorded', description: `${rec.date} ${rec.time}` });
+      try {
+        // Record attendance in Supabase
+        const { data, error } = await supabase
+          .from('attendance')
+          .insert({
+            student_id: student.id,
+            class_id: 'demo-class-id', // This should come from context/props
+            face_match: Math.floor(Math.random() * 20) + 80, // Mock values for now
+            voice_match: Math.floor(Math.random() * 20) + 80,
+            status: 'pending'
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        const now = new Date();
+        const time = now.toLocaleTimeString();
+        const date = now.toLocaleDateString();
+        
+        setResult({ time, date });
+        toast({ title: 'Attendance Recorded', description: `${date} ${time}` });
+      } catch (error) {
+        console.error('Error recording attendance:', error);
+        toast({ 
+          title: 'Error', 
+          description: 'Failed to record attendance. Please try again.',
+          variant: 'destructive'
+        });
+      }
     }
   };
 

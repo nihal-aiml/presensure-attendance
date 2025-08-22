@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { getAnalytics, getAttendance, setAttendanceStatus, type AttendanceRecord } from "@/services/api";
+import { supabase } from "@/integrations/supabase/client";
 import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, BarChart, Bar, CartesianGrid, Legend } from "recharts";
 
 const colors = {
@@ -21,10 +22,68 @@ const FacultyDashboard = () => {
   const [analytics, setAnalytics] = useState<any>(null);
 
   const refresh = async () => {
-    const data = await getAttendance({ search });
-    setAttendance(data);
-    const a = await getAnalytics();
-    setAnalytics(a);
+    try {
+      // Fetch attendance records from Supabase
+      const { data: attendanceData, error } = await supabase
+        .from('attendance')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      // Fetch profiles separately for student names
+      const studentIds = attendanceData?.map(record => record.student_id) || [];
+      const { data: profilesData } = await supabase
+        .from('profiles')
+        .select('id, full_name, student_number')
+        .in('id', studentIds);
+
+      // Create a map for quick lookup
+      const profilesMap = new Map(profilesData?.map(profile => [profile.id, profile]) || []);
+
+      // Filter based on search if provided
+      let filteredData = attendanceData || [];
+      if (search) {
+        filteredData = attendanceData?.filter(record => {
+          const profile = profilesMap.get(record.student_id);
+          const fullName = profile?.full_name?.toLowerCase() || '';
+          const studentNumber = profile?.student_number?.toLowerCase() || '';
+          const searchLower = search.toLowerCase();
+          return fullName.includes(searchLower) || 
+                 studentNumber.includes(searchLower) ||
+                 record.student_id.toLowerCase().includes(searchLower);
+        }) || [];
+      }
+
+      // Transform data to match expected format
+      const transformedData: AttendanceRecord[] = filteredData.map(record => {
+        const profile = profilesMap.get(record.student_id);
+        return {
+          id: record.id,
+          studentId: record.student_id,
+          studentName: profile?.full_name || 'Unknown Student',
+          date: new Date(record.attended_at).toLocaleDateString(),
+          time: new Date(record.attended_at).toLocaleTimeString(),
+          faceMatch: record.face_match || 0,
+          voiceMatch: record.voice_match || 0,
+          status: (record.status === 'approved' ? 'Approved' : 
+                  record.status === 'rejected' ? 'Rejected' : 'Pending') as AttendanceRecord['status']
+        };
+      });
+
+      setAttendance(transformedData);
+
+      // Get analytics (keeping mock for now)
+      const a = await getAnalytics();
+      setAnalytics(a);
+    } catch (error) {
+      console.error('Error fetching attendance:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to fetch attendance records.',
+        variant: 'destructive'
+      });
+    }
   };
 
   useEffect(() => {
@@ -45,14 +104,45 @@ const FacultyDashboard = () => {
   ] : [], [analytics]);
 
   const approve = async (id: string) => {
-    await setAttendanceStatus(id, 'Approved');
-    toast({ title: 'Approved' });
-    refresh();
+    try {
+      const { error } = await supabase
+        .from('attendance')
+        .update({ status: 'approved' })
+        .eq('id', id);
+
+      if (error) throw error;
+      
+      toast({ title: 'Approved' });
+      refresh();
+    } catch (error) {
+      console.error('Error approving attendance:', error);
+      toast({ 
+        title: 'Error', 
+        description: 'Failed to approve attendance.',
+        variant: 'destructive'
+      });
+    }
   };
+
   const reject = async (id: string) => {
-    await setAttendanceStatus(id, 'Rejected');
-    toast({ title: 'Rejected' });
-    refresh();
+    try {
+      const { error } = await supabase
+        .from('attendance')
+        .update({ status: 'rejected' })
+        .eq('id', id);
+
+      if (error) throw error;
+      
+      toast({ title: 'Rejected' });
+      refresh();
+    } catch (error) {
+      console.error('Error rejecting attendance:', error);
+      toast({ 
+        title: 'Error', 
+        description: 'Failed to reject attendance.',
+        variant: 'destructive'
+      });
+    }
   };
 
   return (
