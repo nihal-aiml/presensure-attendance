@@ -79,6 +79,9 @@ const StudentRegister = () => {
       }
 
       if (authData.user) {
+        // Wait a moment for the user role trigger to complete
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
         // Create profile with user data
         const { error: profileError } = await supabase
           .from('profiles')
@@ -90,6 +93,7 @@ const StudentRegister = () => {
 
         if (profileError) {
           console.error('Error creating profile:', profileError);
+          throw new Error('Failed to create user profile. Please try registering again.');
         }
 
         toast({
