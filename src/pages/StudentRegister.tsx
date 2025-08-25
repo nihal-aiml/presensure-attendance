@@ -61,7 +61,7 @@ const StudentRegister = () => {
     setIsLoading(true);
 
     try {
-      // Sign up the user
+      // Sign up the user with metadata that the trigger will use
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
@@ -79,26 +79,9 @@ const StudentRegister = () => {
       }
 
       if (authData.user) {
-        // Wait a moment for the user role trigger to complete
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        // Create profile with user data
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert({
-            id: authData.user.id,
-            full_name: formData.fullName,
-            student_number: formData.studentNumber
-          });
-
-        if (profileError) {
-          console.error('Error creating profile:', profileError);
-          throw new Error('Failed to create user profile. Please try registering again.');
-        }
-
         toast({
           title: "Registration Successful!",
-          description: "Your account has been created. You can now log in."
+          description: "Your account has been created automatically. You can now log in."
         });
 
         // Redirect to login page
@@ -108,7 +91,9 @@ const StudentRegister = () => {
       console.error('Registration error:', error);
       let errorMessage = error.message || "An error occurred during registration";
       
-      if (error.message?.includes("Email address") && error.message?.includes("invalid")) {
+      if (error.message?.includes("User already registered")) {
+        errorMessage = "This email is already registered. Try logging in instead.";
+      } else if (error.message?.includes("Email address") && error.message?.includes("invalid")) {
         errorMessage = "Please enter a valid email address (e.g., student@example.com)";
       }
       

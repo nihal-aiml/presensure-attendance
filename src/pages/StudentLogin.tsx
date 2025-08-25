@@ -25,11 +25,8 @@ const StudentLogin = () => {
         setSession(session);
         setUser(session?.user ?? null);
         
-        if (session?.user) {
-          // Check if user has student role
-          setTimeout(() => {
-            checkUserRole(session.user.id);
-          }, 0);
+        if (session?.user && event === 'SIGNED_IN') {
+          checkUserAndRedirect(session.user.id);
         }
       }
     );
@@ -40,16 +37,16 @@ const StudentLogin = () => {
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        checkUserRole(session.user.id);
+        checkUserAndRedirect(session.user.id);
       }
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  const checkUserRole = async (userId: string) => {
+  const checkUserAndRedirect = async (userId: string) => {
     try {
-      // Use maybeSingle() to avoid errors when no data is found
+      // Check if user has student role
       const { data: roleData, error: roleError } = await supabase
         .from('user_roles')
         .select('role')
@@ -59,66 +56,48 @@ const StudentLogin = () => {
 
       if (roleError) {
         console.error('Error checking user role:', roleError);
-        toast({
-          title: "Error",
-          description: "Unable to verify student status. Please contact support.",
-          variant: "destructive"
-        });
-        return;
+        throw new Error('Unable to verify student status');
       }
 
-      if (roleData) {
-        // Get user profile data
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('full_name, student_number')
-          .eq('id', userId)
-          .maybeSingle();
-
-        if (profileError) {
-          console.error('Error fetching profile:', profileError);
-        }
-
-        toast({ 
-          title: "Welcome back!", 
-          description: `Hello, ${profileData?.full_name || 'Student'}` 
-        });
-        
-        navigate("/student/checkin", { 
-          state: { 
-            id: userId,  // Changed from userId to id to match StudentCheckIn expectations
-            name: profileData?.full_name,
-            studentNumber: profileData?.student_number
-          } 
-        });
-      } else {
-        // No student role found - check if user_roles entry exists at all
-        const { data: anyRole } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', userId)
-          .maybeSingle();
-
-        if (!anyRole) {
-          toast({
-            title: "Registration Incomplete",
-            description: "Your account setup is incomplete. Please contact support or try registering again.",
-            variant: "destructive"
-          });
-        } else {
-          toast({
-            title: "Access Denied",
-            description: "This account is not registered as a student",
-            variant: "destructive"
-          });
-        }
-        await supabase.auth.signOut();
+      if (!roleData) {
+        throw new Error('This account is not registered as a student');
       }
-    } catch (error) {
-      console.error('Error checking user role:', error);
+
+      // Get user profile data
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('full_name, student_number')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (profileError) {
+        console.error('Error fetching profile:', profileError);
+        throw new Error('Unable to load profile data');
+      }
+
+      // Success - redirect to check-in
+      toast({ 
+        title: "Welcome back!", 
+        description: `Hello, ${profileData?.full_name || 'Student'}` 
+      });
+      
+      navigate("/student/checkin", { 
+        state: { 
+          id: userId,
+          name: profileData?.full_name || 'Student',
+          studentNumber: profileData?.student_number || 'N/A'
+        } 
+      });
+
+    } catch (error: any) {
+      console.error('User verification error:', error);
+      
+      // Sign out the user and show error
+      await supabase.auth.signOut();
+      
       toast({
-        title: "Error",
-        description: "Unable to verify account status",
+        title: "Access Denied",
+        description: error.message || "Unable to verify your account. Please contact support.",
         variant: "destructive"
       });
     }
